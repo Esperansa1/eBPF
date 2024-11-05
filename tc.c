@@ -141,9 +141,6 @@ int main(int argc, char **argv)
 
     bpf_tc_attach(&hook, &opts);
     
-
-    packet_stats_fd = bpf_map__fd(skel->maps.packet_stats);
-
     struct ring_buffer *rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_evt, NULL, NULL);
 
 
