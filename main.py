@@ -13,9 +13,9 @@ def get_map_data(map_name):
     return result.stdout
 
 def process_u32_ip(map_data : dict):
-    # map_data = {key:u32_to_ip(value) for key, value in map_data.items()}
-    for item in map_data:
-        item['value']['addr'] = u32_to_ip(item['value']['addr'])
+    for packet in map_data:
+        packet_data = packet['value']
+        packet_data['addr'] = u32_to_ip(packet_data['addr'])
 map_name = "packet_stats"
 map_data = get_map_data(map_name)
 map_data = ast.literal_eval(map_data)
