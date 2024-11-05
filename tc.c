@@ -70,30 +70,8 @@ static void print_ipv6addr(u_int32_t addr[]){
     printf("%s\n", addr_string);
 }
 
-static void display_packet_statistics(){
-        __u32 *cur_key = NULL;
-        __u32 next_key;
-        struct value value;
-        int err;
-        for (;;) {
-                err = bpf_map_get_next_key(packet_stats_fd, cur_key, &next_key);
-                if (err)
-                        break;
-
-                bpf_map_lookup_elem(packet_stats_fd, &next_key, &value);
-                printf("IP: %08x", *cur_key);
-                printf("Packet count: %llu", value.packets);
-                printf("Total bytes: %llu", value.bytes);
-
-                // Use key and value here
-
-                cur_key = &next_key;
-        }
-}
-
 static int handle_evt(void *ctx, void *data, size_t sz)
 {
-    display_packet_statistics();
     struct tc_evt *evt = data;
 
     if (evt->pkt_state == ALLOWED) printf("ALLOWED ");
@@ -167,12 +145,10 @@ int main(int argc, char **argv)
     packet_stats_fd = bpf_map__fd(skel->maps.packet_stats);
 
     struct ring_buffer *rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_evt, NULL, NULL);
-    // struct ring_buffer *packet_stats = ring_buffer__new(bpf_map__fd(skel->maps.rb), display_packet_statistics, NULL, NULL);
 
 
     while(!exiting) {
         ring_buffer__poll(rb, 1000); // READ ABOUT ME
-        // ring_buffer__poll(packet_stats, 1000)
     }
 
     opts.flags = opts.prog_id = opts.prog_fd = 0;
