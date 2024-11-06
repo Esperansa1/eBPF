@@ -1,6 +1,7 @@
 from subprocess import PIPE, run
 import ast
 import socket, struct
+import copy
 
 class ProcessData:
     def __init__(self, map_name):
@@ -14,21 +15,30 @@ class ProcessData:
         return map_data
 
 
-    def sum_total_packets(map_data: dict) -> int:
+    def sum_total_packets(self, map_data: dict) -> int:
         total_packets = 0
         for packet in map_data:
             total_packets += packet['packets']
         return total_packets
     
+    def sum_total_bytes(self, map_data: dict) -> int:
+        total_packets = 0
+        for packet in map_data:
+            total_packets += packet['bytes']
+        return total_packets
 
-    def get_delta_data(self, previous_data: dict) -> dict:
-        new_data = self.get_data()
+    def get_delta_data(self, new_data: dict, previous_data: dict) -> dict:
+        delta_data = []
         for new_packet in new_data:
             for old_packet in previous_data:
                 if new_packet['addr'] == old_packet['addr']:
-                    new_packet['packets'] -= old_packet['packets']
-                    new_packet['bytes'] -= old_packet['bytes']
-        return new_data
+                    delta_packet = {}
+                    delta_packet['packets'] = new_packet['packets'] - old_packet['packets']
+                    delta_packet['bytes'] = new_packet['bytes'] - old_packet['bytes']
+                    delta_packet['addr'] = new_packet['addr']
+                    delta_data.append(delta_packet)
+                    break
+        return delta_data
 
     def u32_to_ip(self, u32_number: int) -> str:
         ip_binary = struct.pack('!L', u32_number)
@@ -52,4 +62,3 @@ class ProcessData:
         map_data = ast.literal_eval(map_data)
         map_data = [packet['value'] for packet in map_data]
         return map_data
-
