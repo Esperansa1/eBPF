@@ -42,6 +42,9 @@ struct tc_evt {
 struct value {
     __u64 packets;
     __u64 bytes;
+    __u32 addr;
+
+
 };
 
 #endif 
