@@ -17,7 +17,6 @@
 #include "tc.skel.h"
 
 static volatile bool exiting = false;
-int packet_stats_fd;
 
 char* print_proto(enum ip_proto ipp)
 {
@@ -48,18 +47,14 @@ static void bump_memlock_rlimit(void)
 	}
 }
 
-static void print_ipv4addr(u_int8_t addr[]){
-    char addr_string[15];
-    memset(addr_string, 0, sizeof(addr_string));
-    snprintf(addr_string, sizeof(addr_string), "%d.%d.%d.%d",
-        addr[0],
-        addr[1],
-        addr[2],
-        addr[3]);
-    printf("%s\n", addr_string);
+void allow_port(int map_fd, uint16_t port)
+{
+    static uint32_t key = 0;
+    bpf_map_update_elem(map_fd, &key, &port, 0);
+    key++;
 }
 
-static void print_ipv6addr(u_int32_t addr[]){
+static void print_ipv4addr(u_int8_t addr[]){
     char addr_string[15];
     memset(addr_string, 0, sizeof(addr_string));
     snprintf(addr_string, sizeof(addr_string), "%d.%d.%d.%d",
@@ -105,7 +100,6 @@ static int handle_evt(void *ctx, void *data, size_t sz)
             strncat(addr, a, 6);
             printf("%s\n", addr);
         }
-        // printf("port: %d\n", evt->ip.port);
         printf("protocol: %s\n", print_proto(evt->ip.ipp));
     }
     
@@ -143,6 +137,11 @@ int main(int argc, char **argv)
     
     struct ring_buffer *rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_evt, NULL, NULL);
 
+    int map_fd = bpf_map__fd(skel->maps.ports);
+    for (int i = 0; i < argc; i++) {
+        int port = atoi(argv[i]);
+        allow_port(map_fd, port);
+    }
 
     while(!exiting) {
         ring_buffer__poll(rb, 1000); // READ ABOUT ME
