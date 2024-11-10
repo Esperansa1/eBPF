@@ -1,5 +1,5 @@
 LOG_FOLDER = "logs/ebpf_network.log"
-ANOMALY_PACKET_THRESHOLD_PRECENT = 1.2
+ANOMALY_PACKET_THRESHOLD_PRECENT = 1.2 # 20% above average load is an anomaly
 INTERVAL = 1
 LOGO = """
 ███████╗██████╗ ██████╗ ███████╗    ██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗████████╗ 
