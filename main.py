@@ -2,43 +2,72 @@ from ProcessData import ProcessData
 from Visualizer import Visualizer
 import time
 import datetime
+import os
+from config import LOG_FOLDER, INTERVAL, LOGO, ANOMALY_PACKET_THRESHOLD_PRECENT
+
 visualizer = Visualizer()
 data_processor = ProcessData("packet_stats")
-
-# time.sleep(1) # Because python3 sends a couple of packets which may make graph weird
 
 def average_load(total_packet_logs):
     return int(sum(total_packet_logs) / len(total_packet_logs))
 
-def detect_anomalies(total_packet_logs, total_packets):
+def detect_anomalies(log_folder_path: str, total_packet_logs: list, current_total_packets: int):
     average_packet_load = average_load(total_packet_logs)
 
-    packet_threshold = average_packet_load * 1.2
-    if total_packets > packet_threshold:
+    packet_threshold = average_packet_load * ANOMALY_PACKET_THRESHOLD_PRECENT
+    if current_total_packets > packet_threshold:
         now = datetime.datetime.now()
         time_formatted = now.strftime("%Y-%m-%d %H:%M:%S")
-        with open("packet_logs.txt", "a") as f:
-            f.write(f"{time_formatted} Packet spike with {total_packets} packets. Average load was {average_packet_load}\n")
+        with open(log, "a") as f:
+            f.write(f"{time_formatted} Packet spike with {current_total_packets} packets. Average load was {average_packet_load}\n")
 
-delay = 1
-previous_data = data_processor.get_data()
-time.sleep(delay)
 
-total_packet_logs = []
+def analyze_network_load(interval, log_folder_path):    
+    previous_data = data_processor.get_data()
+    total_packet_logs = []
+    while True:
+        new_data = data_processor.get_data()
+        delta_data = data_processor.get_delta_data(new_data, previous_data)
 
-i = 0
-while True:
-    new_data = data_processor.get_data()
-    delta_data = data_processor.get_delta_data(new_data, previous_data)
+        total_packets = data_processor.sum_total_packets(delta_data)
+        total_packet_logs.append(total_packets)
+        
+        # After a little bit of network logging to assure network stability
+        detect_anomalies(log_folder_path, total_packet_logs, total_packets)
+        
+        previous_data = new_data
+        visualizer.visualize_network_load(total_packets)
+        time.sleep(interval)
 
-    total_packets = data_processor.sum_total_packets(delta_data)
-    total_packet_logs.append(total_packets)
+def analyze_ip_load(interval, log_folder_path, target_ip):
+    previous_data = data_processor.get_ip_data(target_ip)
+    total_packet_logs = []
+    while True:
+        new_data = data_processor.get_ip_data(target_ip)
+        
+        delta_packets = new_data['packets'] - previous_data['packets']
+        total_packet_logs.append(delta_packets)
+        
+        # After a little bit of network logging to assure network stability
+        detect_anomalies(log_folder_path, total_packet_logs, delta_packets)
+        
+        previous_data = new_data
+        visualizer.visualize_ip_load(delta_packets)
+        time.sleep(interval)
+
+if __name__ == "__main__":
+    print(LOGO)
+    time.sleep(INTERVAL)
     
-     # After a little bit of network logging to assure network stability
-    detect_anomalies(total_packet_logs, total_packets)
-
-    previous_data = new_data
-    # visualizer.visualize_network_load(total_packets)
-    # visualizer.visualize_ip_load(delta_data, '10.2.0.6')
-    time.sleep(delay)
+    #Clear terminal
+    os.system("cls || clear ")
     
+    print("1. Visualize network load")
+    print("2. Visualize IP load")
+    
+    user_input = int(input("Enter: "))
+    if user_input == 1:
+        analyze_network_load(INTERVAL, LOG_FOLDER)
+    elif user_input == 2:
+        target_ip = input("Enter wanted IP: ")
+        analyze_ip_load(INTERVAL, LOG_FOLDER, target_ip)
