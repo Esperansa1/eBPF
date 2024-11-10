@@ -2,6 +2,7 @@
 #define __TC_H__
 
 #define TASK_LEN 16
+#define ALL_PORTS_ALLOWED (-1)
 
 enum ip_proto {
     TCP_V4,
