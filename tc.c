@@ -46,7 +46,6 @@ static void bump_memlock_rlimit(void)
 		exit(1);
 	}
 }
-
 void allow_port(int map_fd, uint16_t port)
 {
     static uint32_t key = 0;
@@ -65,12 +64,16 @@ static void print_ipv4addr(u_int8_t addr[]){
     printf("%s\n", addr_string);
 }
 
+
 static int handle_evt(void *ctx, void *data, size_t sz)
 {
     struct tc_evt *evt = data;
 
     if (evt->pkt_state == ALLOWED) printf("ALLOWED ");
-    else printf("BLOCKED");
+    else {
+        // printf("BLOCKED ");
+        return 0;
+    }
 
     if (evt->eth_type == ETH_P_IP || evt->eth_type == ETH_P_IPV6) {
         // fflush(stdout);
@@ -79,26 +82,8 @@ static int handle_evt(void *ctx, void *data, size_t sz)
         if (evt->ip.ipp == TCP_V4 || evt->ip.ipp == UDP_V4) {
             printf("dest: ");
             print_ipv4addr(evt->ip.daddr.ipv4_daddr);
-            
-            printf("source: ");
-            print_ipv4addr(evt->ip.saddr.ipv4_saddr);
 
-        } else {
-            printf("dest: ");
-            char addr[30];
-            char a[6];
-            memset(addr, 0, sizeof(addr));
-            for (int i = 0; i < 14; i+=2) {
-                snprintf(a, 6, "%02x%02x:",
-                    evt->ip.daddr.ipv6_daddr[i],
-                    evt->ip.daddr.ipv6_daddr[i+1]);
-                strncat(addr, a, 6);
-            }
-            snprintf(a, 6, "%02x%02x",
-                evt->ip.daddr.ipv6_daddr[14],
-                evt->ip.daddr.ipv6_daddr[15]);
-            strncat(addr, a, 6);
-            printf("%s\n", addr);
+            printf("port: %d\n", evt->ip.port);
         }
         printf("protocol: %s\n", print_proto(evt->ip.ipp));
     }
@@ -138,20 +123,25 @@ int main(int argc, char **argv)
     struct ring_buffer *rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_evt, NULL, NULL);
 
     int map_fd = bpf_map__fd(skel->maps.ports);
-    for (int i = 0; i < argc; i++) {
+
+    if(argc == 1){
+        allow_port(map_fd, ALL_PORTS_ALLOWED);
+    }
+
+    for (int i = 1; i < argc; i++) {
+        printf("%s\n", argv[i]);
         int port = atoi(argv[i]);
         allow_port(map_fd, port);
+        printf("Allowed port %d\n", port);
     }
 
     while(!exiting) {
-        ring_buffer__poll(rb, 1000); // READ ABOUT ME
+        ring_buffer__poll(rb, 1000);
     }
 
     opts.flags = opts.prog_id = opts.prog_fd = 0;
     int dtch = bpf_tc_detach(&hook, &opts);
     int dstr = bpf_tc_hook_destroy(&hook);
-
-    printf("%d -- %d\n", dtch, dstr);
     
     return 0;
 }
