@@ -12,7 +12,7 @@ def average_load(total_packet_logs):
     return int(sum(total_packet_logs) / len(total_packet_logs))
 
 # Detect an anomaly if a average_packet_load * THRESHOLD% < current_packet_load
-# Logs data to 
+# Logs data to log_folder_path
 def detect_anomalies(log_folder_path: str, total_packet_logs: list, current_total_packets: int):
     average_packet_load = average_load(total_packet_logs)
 
