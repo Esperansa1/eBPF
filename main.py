@@ -6,7 +6,9 @@ import os
 from config import LOG_FOLDER, INTERVAL, LOGO, ANOMALY_PACKET_THRESHOLD_PRECENT
 
 visualizer = Visualizer()
-data_processor = ProcessData("packet_stats")
+
+map_name = "packet_stats"
+data_processor = ProcessData(map_name)
 
 def average_load(total_packet_logs):
     return int(sum(total_packet_logs) / len(total_packet_logs))
