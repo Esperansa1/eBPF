@@ -25,8 +25,13 @@
 
 #define PORT_AMOUNT 20
 
+// functions to convert data between host and network byte order
+
+// The htons function can be used to convert an IP port number in host byte order to the IP port number in network byte order
 #define htons bpf_htons
 #define ntohl bpf_ntohl
+
+// The ntohs function can be used to convert an IP port number in network byte order to the IP port number in host byte order
 #define ntohs bpf_ntohs
 
 
@@ -204,6 +209,9 @@ int handle_egress(struct __sk_buff *skb)
             evt->pkt_state = ALLOWED;
             rc = TC_ACT_OK;
 
+
+            // Safely attempt to read size bytes from kernel space address unsafe_ptr and store the data in dst
+            //                     destination               size                              unsafe ptr
             bpf_probe_read_kernel(&evt->ip.daddr.ipv4_daddr, sizeof(evt->ip.daddr.ipv4_daddr), &daddr);
             bpf_probe_read_kernel(&evt->ip.saddr.ipv4_saddr, sizeof(evt->ip.saddr.ipv4_saddr), &saddr);
 
@@ -212,6 +220,7 @@ int handle_egress(struct __sk_buff *skb)
         }
     }
 
+    // submit evt object to be sent to ringbuf
     bpf_ringbuf_submit(evt, 0);
     evt = NULL;
     err:
