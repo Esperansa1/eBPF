@@ -13,6 +13,8 @@ mpl.use("module://mpl_ascii")
 class Visualizer:
     def __init__(self, delay=1):
         self.delay = delay
+        
+        # Reset visualization paramaters
         self.reset_visualization()
 
         # Graph Animation
@@ -24,19 +26,15 @@ class Visualizer:
         self.y_values = []
 
 
-    def visualize_network_load(self, total_packets):
+    def visualize_data(self, data):
+        # Add new x,y values to graph to plot
         self.x_values.append(next(self.index))
-        self.y_values.append(total_packets)
-        os.system("clear")
-        plt.plot(self.x_values, self.y_values)
-        plt.show()
-        plt.cla()
-    
-    def visualize_ip_load(self, load):
-        self.x_values.append(next(self.index))
-        self.y_values.append(load)
+        self.y_values.append(data)
         
-        os.system("clear")
+        # Clear the terminal
+        os.system("cls || clear")
+        
+        # Plot the graph and show
         plt.plot(self.x_values, self.y_values)
         plt.show()
         plt.cla()

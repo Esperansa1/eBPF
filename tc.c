@@ -18,6 +18,8 @@
 
 static volatile bool exiting = false;
 
+
+// prints the protocol name
 char* print_proto(enum ip_proto ipp)
 {
     switch(ipp) {
@@ -25,15 +27,12 @@ char* print_proto(enum ip_proto ipp)
             return "TCP ipv4";
         case UDP_V4:
             return "UDP ipv4";
-        case TCP_V6:
-            return "TCP ipv6";
-        case UDP_V6:
-            return "UDP ipv6";
         default:
             return "OTHER";
     }
 }
 
+// Bumps the memory allocation limit to be able to allocate BPF program to memory
 static void bump_memlock_rlimit(void)
 {
 	struct rlimit rlim_new = {
@@ -46,6 +45,8 @@ static void bump_memlock_rlimit(void)
 		exit(1);
 	}
 }
+
+// By default all ports are blocked, this adds a new allowed port
 void allow_port(int map_fd, uint16_t port)
 {
     static uint32_t key = 0;
@@ -53,6 +54,7 @@ void allow_port(int map_fd, uint16_t port)
     key++;
 }
 
+// Prints the IP in a readable format
 static void print_ipv4addr(u_int8_t addr[]){
     char addr_string[15];
     memset(addr_string, 0, sizeof(addr_string));
@@ -64,21 +66,20 @@ static void print_ipv4addr(u_int8_t addr[]){
     printf("%s\n", addr_string);
 }
 
-
+// Handles ringbuff data sent
 static int handle_evt(void *ctx, void *data, size_t sz)
 {
+    // cast the data into a tc_evt struct format
     struct tc_evt *evt = data;
-
+    
     if (evt->pkt_state == ALLOWED) printf("ALLOWED ");
     else {
         // printf("BLOCKED ");
         return 0;
     }
 
-    if (evt->eth_type == ETH_P_IP || evt->eth_type == ETH_P_IPV6) {
-        // fflush(stdout);
+    if (evt->eth_type == ETH_P_IP) {
         printf("comm: %s\n", evt->comm);
-        printf("tgid %d :: pid %d\n", evt->tgid, evt->pid);
         if (evt->ip.ipp == TCP_V4 || evt->ip.ipp == UDP_V4) {
             printf("dest: ");
             print_ipv4addr(evt->ip.daddr.ipv4_daddr);
@@ -93,6 +94,7 @@ static int handle_evt(void *ctx, void *data, size_t sz)
     return 0;
 }
 
+// Handles Signals such as SIGINT and SIGTERM
 static void sig_handler(int sig)
 {
     exiting = true;
@@ -101,6 +103,8 @@ static void sig_handler(int sig)
 
 int main(int argc, char **argv)
 {
+    // DECLARE_LIBBPF_OPTS is the way to use option structures in a backward compatible and extensible way.
+    // declares 2 varaibles, hook and opts with some default values
     DECLARE_LIBBPF_OPTS(bpf_tc_hook, hook, .ifindex = 2, .attach_point = BPF_TC_EGRESS);
     DECLARE_LIBBPF_OPTS(bpf_tc_opts, opts, .handle = 1, .priority = 1);
     bump_memlock_rlimit();
@@ -108,9 +112,11 @@ int main(int argc, char **argv)
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
 
+    // opens and load teh skeleton
     struct tc *skel = tc__open_and_load();
     skel->bss->my_pid = getpid();
 
+    // Create the TC hook
     bpf_tc_hook_create(&hook);
     hook.attach_point = BPF_TC_CUSTOM;
     hook.parent = TC_H_MAKE(TC_H_CLSACT, TC_H_MIN_EGRESS);
@@ -118,16 +124,21 @@ int main(int argc, char **argv)
     opts.prog_id = 0; 
     opts.flags = BPF_TC_F_REPLACE;
 
+    // attach the hook to the TC
     bpf_tc_attach(&hook, &opts);
     
+    // create a new ringbuffer using the rb map and send data to HANDLE_EVT
     struct ring_buffer *rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_evt, NULL, NULL);
 
+    // get the port map fd
     int map_fd = bpf_map__fd(skel->maps.ports);
 
+    // if no ports were written, allow all ports
     if(argc == 1){
         allow_port(map_fd, ALL_PORTS_ALLOWED);
     }
 
+    // iterates through args to allow certain given ports
     for (int i = 1; i < argc; i++) {
         printf("%s\n", argv[i]);
         int port = atoi(argv[i]);
@@ -140,7 +151,9 @@ int main(int argc, char **argv)
     }
 
     opts.flags = opts.prog_id = opts.prog_fd = 0;
-    int dtch = bpf_tc_detach(&hook, &opts);
+
+    // Detaches the hook from the kernel
+    int dtch = bpf_tc_detach(&hook, &opts); 
     int dstr = bpf_tc_hook_destroy(&hook);
     
     return 0;
