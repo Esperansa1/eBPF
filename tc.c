@@ -140,7 +140,6 @@ int main(int argc, char **argv)
 
     // iterates through args to allow certain given ports
     for (int i = 1; i < argc; i++) {
-        printf("%s\n", argv[i]);
         int port = atoi(argv[i]);
         allow_port(map_fd, port);
         printf("Allowed port %d\n", port);

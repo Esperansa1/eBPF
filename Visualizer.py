@@ -1,6 +1,5 @@
 from itertools import count
 import os
-
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import mpl_ascii
