@@ -140,7 +140,7 @@ struct tcphdr* is_tcp(void *iph, u8 hdr_sz, void *data_end)
 }
 
 // checks if a given port is allowed, if entered ALL_PORTS_ALLOWED number (default -1 as in ALL_PORTS_ALLOWED variable), all ports will be open
-int is_port_allowed(int target_port){
+bool is_port_allowed(int target_port){
     u32 i = 0;
     for (i = 0; i < PORT_AMOUNT; i++) {
         u16 *port;
