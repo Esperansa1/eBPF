@@ -52,12 +52,10 @@ class ProcessData:
                     break # only 1 matching address per list so no need to keep iterating
         return delta_data
 
-
-    #TODO: !L is using Big Endian, attempt changing to <L to use little endian to remove reversing of binary number
     # converts a u32 number which represents the IP to a human readable IP string
     def u32_to_ip(self, u32_number: int) -> str:
-        ip_binary = struct.pack('!L', u32_number) # Converts u32 number to binary
-        ip_binary = ip_binary[::-1] # The binary needs to be reversed
+        ip_binary = struct.pack('<L', u32_number) # Converts u32 number to binary
+        # ip_binary = ip_binary[::-1] # The binary needs to be reversed
         ip_address = socket.inet_ntoa(ip_binary) # Converts the binary into IP format
         return ip_address
 
