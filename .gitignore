@@ -385,9 +385,6 @@ FodyWeavers.xsd
 *.code-workspace
 **/.vscode/
 
-# ignore logs files
-**.log
-
 # Local History for Visual Studio Code
 .history/
 
