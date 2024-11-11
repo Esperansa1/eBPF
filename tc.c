@@ -18,7 +18,6 @@
 
 static volatile bool exiting = false;
 
-
 // prints the protocol name
 char* print_proto(enum ip_proto ipp)
 {
