@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import mpl_ascii
 
+# Defines the AXES width,height in the terminal
 mpl_ascii.AXES_WIDTH=70
 mpl_ascii.AXES_HEIGHT=30
 
@@ -13,13 +14,13 @@ mpl.use("module://mpl_ascii")
 class Visualizer:
     def __init__(self, delay=1):
         self.delay = delay
-        
-        # Reset visualization paramaters
         self.reset_visualization()
 
         # Graph Animation
         self.fig, self.ax = plt.subplots()
 
+
+    # Reset visualization paramaters
     def reset_visualization(self):
         self.index = count(step=self.delay)
         self.x_values = []
