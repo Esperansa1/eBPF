@@ -21,7 +21,7 @@ class Visualizer:
 
     # Reset visualization paramaters
     def reset_visualization(self):
-        self.index = count(step=self.delay)
+        self.index = count(start=0, step=self.delay)
         self.x_values = []
         self.y_values = []
 
