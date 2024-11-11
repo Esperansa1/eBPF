@@ -11,6 +11,8 @@ data_processor = ProcessData("packet_stats")
 def average_load(total_packet_logs):
     return int(sum(total_packet_logs) / len(total_packet_logs))
 
+# Detect an anomaly if a average_packet_load * THRESHOLD% < current_packet_load
+# Logs data to 
 def detect_anomalies(log_folder_path: str, total_packet_logs: list, current_total_packets: int):
     average_packet_load = average_load(total_packet_logs)
 
@@ -18,7 +20,7 @@ def detect_anomalies(log_folder_path: str, total_packet_logs: list, current_tota
     if current_total_packets > packet_threshold:
         now = datetime.datetime.now()
         time_formatted = now.strftime("%Y-%m-%d %H:%M:%S")
-        with open(log, "a") as f:
+        with open(log_folder_path, "a") as f:
             f.write(f"{time_formatted} Packet spike with {current_total_packets} packets. Average load was {average_packet_load}\n")
 
 
@@ -36,7 +38,7 @@ def analyze_network_load(interval, log_folder_path):
         detect_anomalies(log_folder_path, total_packet_logs, total_packets)
         
         previous_data = new_data
-        visualizer.visualize_network_load(total_packets)
+        visualizer.visualize_data(total_packets)
         time.sleep(interval)
 
 def analyze_ip_load(interval, log_folder_path, target_ip):
@@ -52,15 +54,17 @@ def analyze_ip_load(interval, log_folder_path, target_ip):
         detect_anomalies(log_folder_path, total_packet_logs, delta_packets)
         
         previous_data = new_data
-        visualizer.visualize_ip_load(delta_packets)
+        visualizer.visualize_data(delta_packets)
         time.sleep(interval)
 
 if __name__ == "__main__":
+    os.system("cls || clear")
+
     print(LOGO)
     time.sleep(INTERVAL)
     
     #Clear terminal
-    os.system("cls || clear ")
+    os.system("cls || clear")
     
     print("1. Visualize network load")
     print("2. Visualize IP load")

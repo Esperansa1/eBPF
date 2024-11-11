@@ -1,10 +1,10 @@
 from itertools import count
 import os
-
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import mpl_ascii
 
+# Defines the AXES width,height in the terminal
 mpl_ascii.AXES_WIDTH=70
 mpl_ascii.AXES_HEIGHT=30
 
@@ -18,25 +18,23 @@ class Visualizer:
         # Graph Animation
         self.fig, self.ax = plt.subplots()
 
+
+    # Reset visualization paramaters
     def reset_visualization(self):
         self.index = count(step=self.delay)
         self.x_values = []
         self.y_values = []
 
 
-    def visualize_network_load(self, total_packets):
+    def visualize_data(self, data):
+        # Add new x,y values to graph to plot
         self.x_values.append(next(self.index))
-        self.y_values.append(total_packets)
-        os.system("clear")
-        plt.plot(self.x_values, self.y_values)
-        plt.show()
-        plt.cla()
-    
-    def visualize_ip_load(self, load):
-        self.x_values.append(next(self.index))
-        self.y_values.append(load)
+        self.y_values.append(data)
         
-        os.system("clear")
+        # Clear the terminal
+        os.system("cls || clear")
+        
+        # Plot the graph and show
         plt.plot(self.x_values, self.y_values)
         plt.show()
         plt.cla()

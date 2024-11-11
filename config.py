@@ -1,6 +1,13 @@
+# Folder for anomaly logs
 LOG_FOLDER = "logs/ebpf_network.log"
+
+# defines the precent needed for a packet load to be considered an anomaly (minimum 1)
 ANOMALY_PACKET_THRESHOLD_PRECENT = 1.2 # 20% above average load is an anomaly
+
+# defines the interval between data reading
 INTERVAL = 1
+
+# Project Logo
 LOGO = """
 ███████╗██████╗ ██████╗ ███████╗    ██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗████████╗ 
 ██╔════╝██╔══██╗██╔══██╗██╔════╝    ██╔══██╗██╔══██╗██╔═══██╗     ██║██╔════╝██╔════╝╚══██╔══╝ 

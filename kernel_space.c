@@ -25,18 +25,25 @@
 
 #define PORT_AMOUNT 20
 
+// functions to convert data between host and network byte order
+
+// The htons function can be used to convert an IP port number in host byte order to the IP port number in network byte order
 #define htons bpf_htons
 #define ntohl bpf_ntohl
+
+// The ntohs function can be used to convert an IP port number in network byte order to the IP port number in host byte order
 #define ntohs bpf_ntohs
 
 
 pid_t my_pid = 0;
 
+// Create ringbuf structure 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 32 * 1024);
 } rb SEC(".maps");
 
+// Create array structure as ports
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __uint(max_entries, PORT_AMOUNT);
@@ -44,6 +51,7 @@ struct {
     __type(key, u32);
 } ports SEC(".maps");
 
+// Create hashmap structure as packet_stats 
 struct {
         __uint(type, BPF_MAP_TYPE_LRU_HASH);
         __uint(max_entries, 1024);
@@ -51,6 +59,7 @@ struct {
         __type(value, struct value);
 } packet_stats SEC(".maps");
 
+// gets srcip, bytes and updates packet_stats hash
 static void update_stats(__u32 srcip, __be16 bytes)
 {
     struct value *value = bpf_map_lookup_elem(&packet_stats, &srcip);
@@ -64,6 +73,7 @@ static void update_stats(__u32 srcip, __be16 bytes)
     }
 }
 
+// gets a ethhdr and data_end and returns if is a ipv4 header
 struct iphdr* is_ipv4(struct ethhdr *eth, void *data_end) 
 {
     struct iphdr *iph = NULL;
@@ -81,6 +91,7 @@ struct iphdr* is_ipv4(struct ethhdr *eth, void *data_end)
     return iph;
 }
 
+// checks if the given header is a udp header
 struct udphdr* is_udp(void *iph, u8 hdr_sz, void *data_end)
 {
     struct udphdr *udph = NULL;
@@ -104,6 +115,7 @@ struct udphdr* is_udp(void *iph, u8 hdr_sz, void *data_end)
     return udph; 
 }
 
+// checks if the given header is a tcp header
 struct tcphdr* is_tcp(void *iph, u8 hdr_sz, void *data_end)
 {
     struct tcphdr *tcph = NULL;
@@ -127,6 +139,7 @@ struct tcphdr* is_tcp(void *iph, u8 hdr_sz, void *data_end)
     return tcph;
 }
 
+// checks if a given port is allowed, if entered ALL_PORTS_ALLOWED number (default -1 as in ALL_PORTS_ALLOWED variable), all ports will be open
 int is_port_allowed(int target_port){
     u32 i = 0;
     for (i = 0; i < PORT_AMOUNT; i++) {
@@ -142,21 +155,24 @@ int is_port_allowed(int target_port){
     return false;
 }
 
-
+// Handles packet traffic and passes it over to the userspace using the ringbuf and the bpf map
 SEC("classifier")
 int handle_egress(struct __sk_buff *skb)
 {
     struct task_struct *t = (struct task_struct*)bpf_get_current_task();
-    pid_t tgid = BPF_CORE_READ(t, tgid);
-    pid_t pid = BPF_CORE_READ(t, pid);
+    pid_t tgid = BPF_CORE_READ(t, tgid); // t->tgid
+    pid_t pid = BPF_CORE_READ(t, pid); // t->pid
     if (tgid == my_pid) {
-        return TC_ACT_OK;
+        return TC_ACT_OK; // No need to handle my own traffic
     }
+
     void *data_end = (void*)(long)skb->data_end;
     struct ethhdr *eth = (struct ethhdr*)(void*)(long)skb->data;
     struct iphdr *iph = is_ipv4(eth, data_end);
 
     struct tc_evt *evt = NULL;
+
+    // gets the ringbuf memory allocation pointer
     evt = bpf_ringbuf_reserve(&rb, sizeof(*evt), 0);
     if (!evt) {
         goto rb_err;
@@ -193,6 +209,9 @@ int handle_egress(struct __sk_buff *skb)
             evt->pkt_state = ALLOWED;
             rc = TC_ACT_OK;
 
+
+            // Safely attempt to read size bytes from kernel space address unsafe_ptr and store the data in dst
+            //                     destination               size                              unsafe ptr
             bpf_probe_read_kernel(&evt->ip.daddr.ipv4_daddr, sizeof(evt->ip.daddr.ipv4_daddr), &daddr);
             bpf_probe_read_kernel(&evt->ip.saddr.ipv4_saddr, sizeof(evt->ip.saddr.ipv4_saddr), &saddr);
 
@@ -201,6 +220,7 @@ int handle_egress(struct __sk_buff *skb)
         }
     }
 
+    // submit evt object to be sent to ringbuf
     bpf_ringbuf_submit(evt, 0);
     evt = NULL;
     err:
