@@ -10,11 +10,12 @@ vmlinux:
 
 .PHONY: bpf
 bpf: vmlinux
-	clang -g -O2 -target bpf -D__TARGET_ARCH_x86_64 -c tc.bpf.c -o tc.bpf.o
+	clang -g -O2 -target bpf -D__TARGET_ARCH_x86_64 -c kernel_space.c -o kernel_space.o
 
 .PHONY: skel
 skel: bpf
-	bpftool gen skeleton tc.bpf.o name tc > tc.skel.h
+	bpftool gen skeleton kernel_space.o name tc > tc.skel.h
+
 
 .PHONY: run
 run: $(APP)
